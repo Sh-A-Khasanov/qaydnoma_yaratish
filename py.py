@@ -9,7 +9,7 @@ from tkinter import messagebox
 
 from word_yasash import create_word,delete_file
 
-
+from docx.shared import Pt, Cm
 import requests
 from io import StringIO
 
@@ -426,6 +426,9 @@ def saqlash():
 from docx import Document
 from docx.shared import Pt
 
+from docx.shared import Pt
+from docx.oxml.ns import qn
+
 def replace_text_in_doc(doc, replace_map):
     for p in doc.paragraphs:
         full_text = ''.join(run.text for run in p.runs)
@@ -436,6 +439,11 @@ def replace_text_in_doc(doc, replace_map):
             run.text = ''
         if p.runs:
             p.runs[0].text = full_text
+            # Shrift sozlamalarini qo‘llash
+            for run in p.runs:
+                run.font.name = 'Times New Roman'
+                run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
+                run.font.size = Pt(11)  # word_yasash.py dagi umumiy matn uchun
 
     for table in doc.tables:
         for row in table.rows:
@@ -449,7 +457,20 @@ def replace_text_in_doc(doc, replace_map):
                         run.text = ''
                     if p.runs:
                         p.runs[0].text = full_text
+                        # Shrift sozlamalarini qo‘llash
+                        for run in p.runs:
+                            run.font.name = 'Times New Roman'
+                            run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
+                            run.font.size = Pt(10)  # Jadval matni uchun
+
+
+
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT  # ⬅️ Import qilish kerak
+
+from docx import Document
+from docx.shared import Pt, Cm
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.oxml.ns import qn
 
 def print_word():
     data = {label: entry.get() for label, entry in input_entries.items()}
@@ -511,85 +532,100 @@ def print_word():
         "{mudir}": data.get("Kafedra mudiri nomi", "")
     }
 
+    # Jadvalni topish va kengliklarni qo‘llash
     for table in doc.tables:
         if any("{tr}" in cell.text for row in table.rows for cell in row.cells):
+            # Dastlabki qatorni o‘chirish
             for i, row in enumerate(table.rows):
                 if "{tr}" in row.cells[0].text:
                     table._tbl.remove(row._tr)
                     break
 
-        for idx, (talaba_id, entry_widget) in enumerate(ball_entries.items(), start=1):
-            parent_widgets = entry_widget.master.winfo_children()
-            talaba_ismi = parent_widgets[1].cget("text") if len(parent_widgets) > 1 else ""
-            ball = entry_widget.get().strip()
+            # Ustun kengliklarini belgilash
+            widths = [Cm(1), Cm(6), Cm(3), Cm(3), Cm(2), Cm(3)]  # Birinchi ustun 1 sm
+            for col, width in zip(table.columns, widths):
+                for cell in col.cells:
+                    cell.width = width
 
-            ball_text = "Noto‘g‘ri"
-            baho_text = "Noto‘g‘ri"
+            for idx, (talaba_id, entry_widget) in enumerate(ball_entries.items(), start=1):
+                parent_widgets = entry_widget.master.winfo_children()
+                talaba_ismi = parent_widgets[1].cget("text") if len(parent_widgets) > 1 else ""
+                ball = entry_widget.get().strip()
 
-            if not ball or ball == "0":
-                ball_text = "Kelmadi"
-                baho_text = "Kelmadi"
-                kelmadi += 1
-            else:
-                try:
-                    ball_val = float(ball)
-                    if ball_val > max_ball:
-                        messagebox.showerror("Xatolik", f"❌ {talaba_ismi} uchun kiritilgan ball ({ball_val}) maksimal balldan ({max_ball}) katta.")
+                ball_text = "Noto‘g‘ri"
+                baho_text = "Noto‘g‘ri"
+
+                if not ball or ball == "0":
+                    ball_text = "Kelmadi"
+                    baho_text = "Kelmadi"
+                    kelmadi += 1
+                else:
+                    try:
+                        ball_val = float(ball)
+                        if ball_val > max_ball:
+                            messagebox.showerror("Xatolik", f"❌ {talaba_ismi} uchun kiritilgan ball ({ball_val}) maksimal balldan ({max_ball}) katta.")
+                            return
+                        if ball_val < 0:
+                            messagebox.showerror("Xatolik", f"❌ {talaba_ismi} uchun kiritilgan ball ({ball_val}) 0 dan kichik.")
+                            return
+                        ball_text = str(int(ball_val)) if ball_val.is_integer() else str(ball_val)
+                        baho_text = calculate_baho(ball_val, max_ball)
+
+                        if baho_text == "5":
+                            alo_5 += 1
+                        elif baho_text == "4":
+                            yaxshi_4 += 1
+                        elif baho_text == "3":
+                            qoniqarli_3 += 1
+                        elif baho_text == "2":
+                            qoniqarsiz_2 += 1
+                        elif baho_text.lower() == "kelmadi":
+                            kelmadi += 1
+                    except ValueError:
+                        messagebox.showerror("Xatolik", f"❌ {talaba_ismi} uchun noto‘g‘ri ball qiymati: {ball}")
                         return
-                    if ball_val < 0:
-                        messagebox.showerror("Xatolik", f"❌ {talaba_ismi} uchun kiritilgan ball ({ball_val}) 0 dan kichik.")
-                        return
-                    ball_text = str(int(ball_val)) if ball_val.is_integer() else str(ball_val)
-                    baho_text = calculate_baho(ball_val, max_ball)
 
-                    if baho_text == "5":
-                        alo_5 += 1
-                    elif baho_text == "4":
-                        yaxshi_4 += 1
-                    elif baho_text == "3":
-                        qoniqarli_3 += 1
-                    elif baho_text == "2":
-                        qoniqarsiz_2 += 1
-                    elif baho_text.lower() == "kelmadi":
-                        kelmadi += 1
-                except ValueError:
-                    ball_text = "Noto‘g‘ri"
-                    baho_text = "Noto‘g‘ri"
+                new_row = table.add_row()
+                if len(new_row.cells) < 6:
+                    print(f"❌ Jadval ustunlari yetarli emas. Topilgan: {len(new_row.cells)}")
+                    continue
 
+                new_row.cells[0].text = str(idx)
+                new_row.cells[1].text = talaba_ismi
+                new_row.cells[2].text = str(talaba_id)
+                new_row.cells[3].text = ball_text
+                new_row.cells[4].text = baho_text
+                new_row.cells[5].text = ""
 
-                except ValueError:
-                    messagebox.showerror("Xatolik", f"❌ {talaba_ismi} uchun noto‘g‘ri ball qiymati: {ball}")
-                    return
-
-            new_row = table.add_row()
-            if len(new_row.cells) < 6:
-                print(f"❌ Jadval ustunlari yetarli emas. Topilgan: {len(new_row.cells)}")
-                continue
-
-            new_row.cells[0].text = str(idx)
-            new_row.cells[1].text = talaba_ismi
-            new_row.cells[2].text = str(talaba_id)
-            new_row.cells[3].text = ball_text
-            new_row.cells[4].text = baho_text
-            new_row.cells[5].text = ""
-
-            for cell_index, cell in enumerate(new_row.cells):
-                for paragraph in cell.paragraphs:
-                    paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER if cell_index in [3, 4] else WD_PARAGRAPH_ALIGNMENT.LEFT
-                    for run in paragraph.runs:
-                        run.font.size = Pt(10)
+                # Har bir katak uchun shrift sozlamalari va kenglik
+                for cell_index, cell in enumerate(new_row.cells):
+                    for paragraph in cell.paragraphs:
+                        paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER if cell_index in [3, 4] else WD_PARAGRAPH_ALIGNMENT.LEFT
+                        for run in paragraph.runs:
+                            run.font.name = 'Times New Roman'
+                            run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
+                            run.font.size = Pt(10)
 
     replace_map.update({
         "{student_soni}": str(len(ball_entries)),
-        "{alo_5}": str(int(alo_5/2)),
-        "{yaxshi_4}": str(int(yaxshi_4/2)),
-        "{qoniqarli_3}": str(int(qoniqarli_3/2)),
-        "{qoniqarsiz_2}": str(int(qoniqarsiz_2/2)),
-        "{kelmadi}": str(int(kelmadi/2))
+        "{alo_5}": str(int(alo_5)),
+        "{yaxshi_4}": str(int(yaxshi_4)),
+        "{qoniqarli_3}": str(int(qoniqarli_3)),
+        "{qoniqarsiz_2}": str(int(qoniqarsiz_2)),
+        "{kelmadi}": str(int(kelmadi))
     })
 
-
     replace_text_in_doc(doc, replace_map)
+
+    # Imzo jadvalidagi matnlar uchun shrift sozlamalari
+    for row in doc.tables[-1].rows:  # Imzo jadvali odatda oxirgi jadval
+        for cell in row.cells:
+            for paragraph in cell.paragraphs:
+                paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+                for run in paragraph.runs:
+                    run.font.name = 'Times New Roman'
+                    run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
+                    run.font.size = Pt(11)
 
     fan_nomi = data.get("Fan", "").replace(" ", "_")
     semester = data.get("Semestr", "").replace(" ", "_")
@@ -605,6 +641,22 @@ def print_word():
     print(f"✅ Word hujjat yaratildi: {output_path}")
     send_file_to_telegram_group(output_path)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
 import requests
 
 def send_file_to_telegram_group(file_path):
