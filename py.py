@@ -421,7 +421,7 @@ def print_word():
 
     try:
         doc_name = create_word()
-        doc = Document("docx_temp.docx")
+        doc = Document(doc_name)
     except Exception as e:
         print("❌ docx_temp.docx ochishda xatolik:", e)
         return
