@@ -7,6 +7,8 @@ from docx import Document
 from tkcalendar import DateEntry
 from tkinter import messagebox
 
+from word_yasash import create_word,delete_file
+
 
 import requests
 from io import StringIO
@@ -14,6 +16,7 @@ from io import StringIO
 import pandas as pd
 import requests
 from io import StringIO
+
 
 def get_uqituvchi_list_from_google_sheet():
     sheet_id = "1cGNF3MPX5agBNJmSJWfj1Tc0HVhIwTp338cRWzvkpgI"  # Yangi sheet_id
@@ -472,7 +475,8 @@ def print_word():
         return
 
     try:
-        doc = Document("data/docx_temp.docx")
+        doc_name = create_word()
+        doc = Document("docx_temp.docx")
     except Exception as e:
         print("❌ docx_temp.docx ochishda xatolik:", e)
         return
@@ -595,6 +599,9 @@ def print_word():
     filename = f"{tanlangan_guruh}_{semester}_{fan_nomi}_{nazorat_turi}_{nazorat_shakli}_tur.docx"
     output_path = os.path.join("data", filename)
     doc.save(output_path)
+
+    delete_file("docx_temp.docx")
+
     print(f"✅ Word hujjat yaratildi: {output_path}")
     send_file_to_telegram_group(output_path)
 
