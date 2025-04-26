@@ -132,7 +132,7 @@ def create_word():
     hdr_cells = table.rows[0].cells
     hdr_cells[0].text = "\n№"
     hdr_cells[1].text = "\nTalabaning \nfamiliyasi, \nismi, sharifi\n"
-    hdr_cells[2].text = "\nReyting daftar chasining raqami"
+    hdr_cells[2].text = "\nReyting daftar-chasining raqami"
     hdr_cells[3].text = "\n{nazorat_tur}dan to‘plagan ballar"
     hdr_cells[4].text = "\nBaho"
     hdr_cells[5].text = "\n{nazorat_turi}\no‘tkazgan o‘qituvchi imzosi\n"

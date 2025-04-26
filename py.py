@@ -472,6 +472,11 @@ from docx.shared import Pt, Cm
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml.ns import qn
 
+from docx import Document
+from docx.shared import Pt, Cm
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.oxml.ns import qn
+
 def print_word():
     data = {label: entry.get() for label, entry in input_entries.items()}
     data.update({label: cb.get() for label, cb in comboboxes.items()})
@@ -532,7 +537,7 @@ def print_word():
         "{mudir}": data.get("Kafedra mudiri nomi", "")
     }
 
-    # Jadvalni topish va kengliklarni qo‘llash
+    # Asosiy jadvalni topish va kengliklarni qo‘llash
     for table in doc.tables:
         if any("{tr}" in cell.text for row in table.rows for cell in row.cells):
             # Dastlabki qatorni o‘chirish
@@ -541,12 +546,13 @@ def print_word():
                     table._tbl.remove(row._tr)
                     break
 
-            # Ustun kengliklarini belgilash
-            widths = [Cm(1), Cm(6), Cm(3), Cm(3), Cm(2), Cm(3)]  # Birinchi ustun 1 sm
-            for col, width in zip(table.columns, widths):
-                for cell in col.cells:
+            # Ustun kengliklarini qat'iy belgilash
+            widths = [Cm(1), Cm(8), Cm(2.7), Cm(2.5), Cm(1.7), Cm(2)]  # Birinchi ustun 1 sm
+            for col_idx, width in enumerate(widths):
+                for cell in table.columns[col_idx].cells:
                     cell.width = width
 
+            # Har bir talaba uchun yangi qator qo‘shish
             for idx, (talaba_id, entry_widget) in enumerate(ball_entries.items(), start=1):
                 parent_widgets = entry_widget.master.winfo_children()
                 talaba_ismi = parent_widgets[1].cget("text") if len(parent_widgets) > 1 else ""
@@ -576,7 +582,7 @@ def print_word():
                         elif baho_text == "4":
                             yaxshi_4 += 1
                         elif baho_text == "3":
-                            qoniqarli_3 += 1
+                            qoniqarli_3 += 1  # ← qoni.SafeMode o'rniga
                         elif baho_text == "2":
                             qoniqarsiz_2 += 1
                         elif baho_text.lower() == "kelmadi":
@@ -597,8 +603,9 @@ def print_word():
                 new_row.cells[4].text = baho_text
                 new_row.cells[5].text = ""
 
-                # Har bir katak uchun shrift sozlamalari va kenglik
+                # Har bir katak uchun shrift sozlamalari va kenglikni qayta qo‘llash
                 for cell_index, cell in enumerate(new_row.cells):
+                    cell.width = widths[cell_index]  # Har bir katak uchun kenglik
                     for paragraph in cell.paragraphs:
                         paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER if cell_index in [3, 4] else WD_PARAGRAPH_ALIGNMENT.LEFT
                         for run in paragraph.runs:
@@ -606,16 +613,16 @@ def print_word():
                             run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
                             run.font.size = Pt(10)
 
-    replace_map.update({
-        "{student_soni}": str(len(ball_entries)),
-        "{alo_5}": str(int(alo_5)),
-        "{yaxshi_4}": str(int(yaxshi_4)),
-        "{qoniqarli_3}": str(int(qoniqarli_3)),
-        "{qoniqarsiz_2}": str(int(qoniqarsiz_2)),
-        "{kelmadi}": str(int(kelmadi))
-    })
+            replace_map.update({
+                "{student_soni}": str(len(ball_entries)),
+                "{alo_5}": str(int(alo_5)),
+                "{yaxshi_4}": str(int(yaxshi_4)),
+                "{qoniqarli_3}": str(int(qoniqarli_3)),
+                "{qoniqarsiz_2}": str(int(qoniqarsiz_2)),
+                "{kelmadi}": str(int(kelmadi))
+            })
 
-    replace_text_in_doc(doc, replace_map)
+            replace_text_in_doc(doc, replace_map)
 
     # Imzo jadvalidagi matnlar uchun shrift sozlamalari
     for row in doc.tables[-1].rows:  # Imzo jadvali odatda oxirgi jadval
@@ -640,6 +647,8 @@ def print_word():
 
     print(f"✅ Word hujjat yaratildi: {output_path}")
     send_file_to_telegram_group(output_path)
+ 
+
 
 
 
