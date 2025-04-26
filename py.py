@@ -249,7 +249,7 @@ for index, (label, options) in enumerate(all_fields):
     tk.Label(form_frame, text=label, font=LABEL_FONT, bg=BG_COLOR, fg=BORDER_COLOR).grid(row=row * 2, column=col, padx=10, pady=5, sticky="w")
 
     if isinstance(options, list):
-        cb = SearchableCombobox(form_frame, values=options, width=50)
+        cb = SearchableCombobox(form_frame, values=options, width=40)
         cb.grid(row=row * 2 + 1, column=col, padx=10, pady=5, sticky="we")
         comboboxes[label] = cb
     else:
