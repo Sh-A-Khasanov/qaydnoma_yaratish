@@ -22,7 +22,7 @@ def create_word():
     # Hujjat sarlavhasi
     title = doc.add_paragraph()
     title_run = title.add_run("{tur}-shakl")
-    title_run.bold = True
+    title_run.bold = False
     title_run.font.name = 'Times New Roman'
     title_run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
     title_run.font.size = Pt(11)
@@ -131,11 +131,11 @@ def create_word():
     # 1-qator: sarlavhalar
     hdr_cells = table.rows[0].cells
     hdr_cells[0].text = "\n№"
-    hdr_cells[1].text = "\nTalabaning \nfamiliyasi, \nismi, sharifi\n"
+    hdr_cells[1].text = "\nTalabaning \nfamiliyasi, \nismi, sharifi"
     hdr_cells[2].text = "\nReyting daftar-chasining raqami"
     hdr_cells[3].text = "\n{nazorat_tur}dan to‘plagan ballar"
     hdr_cells[4].text = "\nBaho"
-    hdr_cells[5].text = "\n{nazorat_turi}\no‘tkazgan o‘qituvchi imzosi\n"
+    hdr_cells[5].text = "\n{nazorat_turi}\no‘tkazgan o‘qituvchi imzosi"
 
     # 2-qator: misol uchun ma'lumot
     row_cells = table.rows[1].cells
@@ -221,7 +221,7 @@ def create_word():
 
 def delete_file(file_name):
     if os.path.exists(file_name):
-        # os.remove(file_name)
+        os.remove(file_name)
         print("O'chirildi")
     else:
         print("file topilmadi")

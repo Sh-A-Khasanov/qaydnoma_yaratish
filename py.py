@@ -1,22 +1,58 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
+from tkcalendar import DateEntry
 import pandas as pd
 import glob
 import os
 from docx import Document
-from tkcalendar import DateEntry
-from tkinter import messagebox
-
-from word_yasash import create_word,delete_file
-
 from docx.shared import Pt, Cm
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.oxml.ns import qn
 import requests
 from io import StringIO
+from datetime import datetime
+import re
+from word_yasash import create_word, delete_file
 
-import pandas as pd
-import requests
-from io import StringIO
 
+# import tkinter as tk
+# from tkinter import ttk
+# import pandas as pd
+# import glob
+# import os
+# from docx import Document
+# from tkcalendar import DateEntry
+# from tkinter import messagebox
+# import re
+# import re
+# import requests
+# from datetime import datetime
+# from word_yasash import create_word,delete_file
+# from docx.enum.text import WD_PARAGRAPH_ALIGNMENT  # ⬅️ Import qilish kerak
+
+# from docx import Document
+# from docx.shared import Pt, Cm
+# from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+# from docx.oxml.ns import qn
+
+# from docx import Document
+# from docx.shared import Pt, Cm
+# from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+# from docx.oxml.ns import qn
+
+# from docx.shared import Pt, Cm
+# import requests
+# from io import StringIO
+
+# import pandas as pd
+# import requests
+# from io import StringIO
+
+# from docx import Document
+# from docx.shared import Pt
+
+# from docx.shared import Pt
+# from docx.oxml.ns import qn
 
 def get_uqituvchi_list_from_google_sheet():
     sheet_id = "1cGNF3MPX5agBNJmSJWfj1Tc0HVhIwTp338cRWzvkpgI"  # Yangi sheet_id
@@ -64,7 +100,7 @@ def get_fanlar_from_google_sheet():
 
 
 # Excel faylini avtomatik tanlash
-def get_latest_excel_file(folder="data"):
+def get_latest_excel_file(folder=""):
     list_of_files = glob.glob(os.path.join(folder, "Talabalar-*.xlsx"))
     if not list_of_files:
         return None
@@ -73,7 +109,7 @@ def get_latest_excel_file(folder="data"):
 
 
 # Excel fayllarni yuklash
-talabalar = get_latest_excel_file("data")
+talabalar = get_latest_excel_file("")
 if not talabalar:
     print("❌ Talabalar fayli topilmadi!")
     exit()
@@ -253,8 +289,7 @@ class SearchableCombobox(ttk.Combobox):
         self.icursor(current_position)
 
 
-import re
-from datetime import datetime
+
 
 def format_date_entry(event):
     widget = event.widget
@@ -423,11 +458,6 @@ def saqlash():
 
 
 
-from docx import Document
-from docx.shared import Pt
-
-from docx.shared import Pt
-from docx.oxml.ns import qn
 
 def replace_text_in_doc(doc, replace_map):
     for p in doc.paragraphs:
@@ -465,17 +495,6 @@ def replace_text_in_doc(doc, replace_map):
 
 
 
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT  # ⬅️ Import qilish kerak
-
-from docx import Document
-from docx.shared import Pt, Cm
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx.oxml.ns import qn
-
-from docx import Document
-from docx.shared import Pt, Cm
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx.oxml.ns import qn
 
 def print_word():
     data = {label: entry.get() for label, entry in input_entries.items()}
@@ -507,7 +526,7 @@ def print_word():
         print("❌ docx_temp.docx ochishda xatolik:", e)
         return
 
-    import re
+
     nazorat_tur_full = data.get("Nazorat turi", "")
     nazorat_tur = re.sub(r"\(.*?\)", "", nazorat_tur_full).strip()
 
@@ -640,7 +659,13 @@ def print_word():
     nazorat_shakli = data.get("Nazorat shakli", "").replace(" ", "_")
 
     filename = f"{tanlangan_guruh}_{semester}_{fan_nomi}_{nazorat_turi}_{nazorat_shakli}_tur.docx"
-    output_path = os.path.join("data", filename)
+    output_dir = "Qaydnomalar"
+    output_path = os.path.join(output_dir, filename)
+
+    # Qaydnomalar papkasini yaratish (agar mavjud bo'lmasa)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
     doc.save(output_path)
 
     delete_file("docx_temp.docx")
@@ -666,7 +691,7 @@ def print_word():
 
 
  
-import requests
+
 
 def send_file_to_telegram_group(file_path):
     bot_token = "7988992200:AAHguvG_iPE6ZG6gdsCjWKJ17fv6vpPzJsQ"
@@ -679,9 +704,9 @@ def send_file_to_telegram_group(file_path):
         response = requests.post(url, data=data, files=files)
 
     if response.status_code == 200:
-        print("✅ Hujjat data papkaga yuborildi!")
+        print("✅ Hujjat Qaydnomalar papkaga yuborildi!")
     else:
-        print("❌ Hujjat Hujjat data papkaga yuborishda xatolik:", response.text)
+        print("❌ Hujjat Hujjat Qaydnomalar papkaga yuborishda xatolik:", response.text)
 
 # Word hujjat yaratib bo‘lgandan so‘ng chaqirasiz:
 
