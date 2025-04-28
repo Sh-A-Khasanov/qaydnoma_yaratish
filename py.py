@@ -96,7 +96,7 @@ def get_groups_and_faculties_from_excel(file_path):
 # Tkinter oynasi
 root = tk.Tk()
 root.title("Qaydnoma shakillantirish")
-root.geometry("900x400")
+root.geometry("1200x600")
 root.state('zoomed')
 root.configure(bg=BG_COLOR)
 
