@@ -125,7 +125,12 @@ fields = {
     "Dekan nomi": uqituvchi_ismi,
     "Kafedra mudiri nomi": uqituvchi_ismi
 }
-
+# Nazorat shakli mapping
+nazorat_shakli_map = {
+    "1": "1",
+    "2": "1a",
+    "3": "1b"
+}
 max_ball_map = {
     "1-ON(max-15 ball)": 15,
     "2-ON(max-15 ball)": 15,
@@ -254,7 +259,7 @@ for index, (label, options) in enumerate(all_fields):
         comboboxes[label] = cb
     else:
         if label == "Nazorat sanasi":
-            date_entry = DateEntry(form_frame, date_pattern='dd.mm.yyyy', width=47, background=BORDER_COLOR, foreground=TEXT_COLOR, borderwidth=2, font=ENTRY_FONT)
+            date_entry = DateEntry(form_frame, date_pattern='dd.mm.yyyy', width=47, background=BORDER_COLOR, foreground=BORDER_COLOR, borderwidth=2, font=ENTRY_FONT)
             date_entry.grid(row=row * 2 + 1, column=col, padx=10, pady=5, sticky="we")
             date_entry.bind("<FocusOut>", format_date_entry)
             input_entries[label] = date_entry
@@ -430,7 +435,9 @@ def print_word():
     nazorat_tur = re.sub(r"\(.*?\)", "", nazorat_tur_full).strip()
 
     max_ball = max_ball_map.get(nazorat_tur_full, 100)
-
+    nazorat_shakli = data.get("Nazorat shakli", "")
+    mapped_nazorat_shakli = nazorat_shakli_map.get(nazorat_shakli, nazorat_shakli)  # Use original if not found
+    
     replace_map = {
         "{fakultet}": data.get("Fakultet nomi", ""),
         "{semester}": data.get("Semestr", ""),
@@ -443,7 +450,7 @@ def print_word():
         "{soat}": data.get("Fan soati", ""),
         "{kredit}": data.get("Fan krediti", ""),
         "{nazorat_sanasi}": data.get("Nazorat sanasi", ""),
-        "{tur}": data.get("Nazorat shakli", ""),
+        "{tur}": mapped_nazorat_shakli,  # Use the mapped value
         "{dekan}": data.get("Dekan nomi", ""),
         "{mudir}": data.get("Kafedra mudiri nomi", "")
     }
