@@ -29,7 +29,7 @@ BUTTON_FONT = (FONT_FAMILY, 11, "bold")
 
 # Funksiyalar (oldingi kod bilan bir xil, faqat dizayn uchun yangilandi)
 def get_uqituvchi_list_from_google_sheet():
-    sheet_id = "1cGNF3MPX5agBNJmSJWfj1Tc0HVhIwTp338cRWzvkpgI"
+    sheet_id = "1eJ6LDB61vZ8ZW2IAyseKOnLigUHEbas6F0bwTquqIeU"
     sheet_name = "Xodimlar"
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     try:
@@ -39,7 +39,8 @@ def get_uqituvchi_list_from_google_sheet():
         if {'Ismi', 'Familiya', "Otasining ismi"}.issubset(df.columns):
             full_names = df[['Familiya', 'Ismi', 'Otasining ismi']].fillna('').astype(str).apply(
                 lambda x: f"{x['Familiya']} {x['Ismi']} {x['Otasining ismi']}".strip(), axis=1)
-            return full_names.tolist()
+            return list(set(full_names))
+
         else:
             print("❌ Kutilgan ustun nomlari topilmadi.")
             return []
@@ -48,7 +49,7 @@ def get_uqituvchi_list_from_google_sheet():
         return []
 
 def get_fanlar_from_google_sheet():
-    sheet_id = "1cGNF3MPX5agBNJmSJWfj1Tc0HVhIwTp338cRWzvkpgI"
+    sheet_id = "1eJ6LDB61vZ8ZW2IAyseKOnLigUHEbas6F0bwTquqIeU"
     sheet_name = "Fanlar ro'yxati"
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     try:
