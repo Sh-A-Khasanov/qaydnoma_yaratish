@@ -260,7 +260,7 @@ for index, (label, options) in enumerate(all_fields):
         comboboxes[label] = cb
     else:
         if label == "Nazorat sanasi":
-            date_entry = DateEntry(form_frame, date_pattern='dd.mm.yyyy', width=47, background=BORDER_COLOR, foreground=BORDER_COLOR, borderwidth=2, font=ENTRY_FONT)
+            date_entry = DateEntry(form_frame, date_pattern='dd.mm.yyyy', width=47, background=BORDER_COLOR, foreground=TEXT_COLOR, borderwidth=2, font=ENTRY_FONT)
             date_entry.grid(row=row * 2 + 1, column=col, padx=10, pady=5, sticky="we")
             date_entry.bind("<FocusOut>", format_date_entry)
             input_entries[label] = date_entry
