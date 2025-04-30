@@ -170,7 +170,7 @@ def create_word():
     stats = doc.add_paragraph()
     stats_run = stats.add_run(
         "Jami talabalar soni: {student_soni}, shundan: “5”: {alo_5}, “4”: {yaxshi_4}, "
-        "“3”: {qoniqarli_3}, “2”: {qoniqarsiz_2}, Kelmadi: {kelmadi}\n"
+        "“3”: {qoniqarli_3}, “O'tmadi”: {qoniqarsiz_2}, Kelmadi: {kelmadi}\n"
     )
     stats_run.font.name = 'Times New Roman'
     stats_run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')

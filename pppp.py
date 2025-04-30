@@ -120,13 +120,13 @@ fields = {
     "Guruh": guruhlar if guruhlar else ["Guruh 1", "Guruh 2"],
     "Fan": fanlar_list,
     "Fan o'qituvchilari": uqituvchi_ismi,
-    "Nazorat turi": ["1-ON(max-15 ball)", "2-ON(max-15 ball)", "Oraliq(max-30 ball)", "Yakuniy(max-70 ball)", "Umumiy(max-100 ball)"],
+    "Nazorat shakli": ["1-ON(max-15 ball)", "2-ON(max-15 ball)", "Oraliq(max-30 ball)", "Yakuniy(max-70 ball)", "Umumiy(max-100 ball)"],
     "Nazorat mas’uli": uqituvchi_ismi,
-    "Nazorat shakli": ["1", "2", "3"],
+    "Nazorat turi": ["1", "2", "3"],
     "Dekan nomi": uqituvchi_ismi,
     "Kafedra mudiri nomi": uqituvchi_ismi
 }
-# Nazorat shakli mapping
+# Nazorat turi mapping
 nazorat_shakli_map = {
     "1": "1",
     "2": "1a",
@@ -155,7 +155,7 @@ def calculate_baho(ball, max_ball):
         elif baho >= 3.0:
             return "3"
         else:
-            return "2"
+            return "O'tmadi"
     except:
         return "Noto‘g‘ri"
 
@@ -260,7 +260,7 @@ for index, (label, options) in enumerate(all_fields):
         comboboxes[label] = cb
     else:
         if label == "Nazorat sanasi":
-            date_entry = DateEntry(form_frame, date_pattern='dd.mm.yyyy', width=47, background=BORDER_COLOR, foreground=TEXT_COLOR, borderwidth=2, font=ENTRY_FONT)
+            date_entry = DateEntry(form_frame, date_pattern='dd.mm.yyyy', width=47, background=BORDER_COLOR, foreground=BORDER_COLOR, borderwidth=2, font=ENTRY_FONT)
             date_entry.grid(row=row * 2 + 1, column=col, padx=10, pady=5, sticky="we")
             date_entry.bind("<FocusOut>", format_date_entry)
             input_entries[label] = date_entry
@@ -432,11 +432,11 @@ def print_word():
         print("❌ docx_temp.docx ochishda xatolik:", e)
         return
 
-    nazorat_tur_full = data.get("Nazorat turi", "")
+    nazorat_tur_full = data.get("Nazorat shakli", "")
     nazorat_tur = re.sub(r"\(.*?\)", "", nazorat_tur_full).strip()
 
     max_ball = max_ball_map.get(nazorat_tur_full, 100)
-    nazorat_shakli = data.get("Nazorat shakli", "")
+    nazorat_shakli = data.get("Nazorat turi", "")
     mapped_nazorat_shakli = nazorat_shakli_map.get(nazorat_shakli, nazorat_shakli)  # Use original if not found
     
     replace_map = {
@@ -498,7 +498,7 @@ def print_word():
                             yaxshi_4 += 1
                         elif baho_text == "3":
                             qoniqarli_3 += 1
-                        elif baho_text == "2":
+                        elif baho_text == "O'tmadi":
                             qoniqarsiz_2 += 1
                         elif baho_text.lower() == "kelmadi":
                             kelmadi += 1
@@ -549,8 +549,8 @@ def print_word():
 
     fan_nomi = data.get("Fan", "").replace(" ", "_")
     semester = data.get("Semestr", "").replace(" ", "_")
-    nazorat_turi = data.get("Nazorat turi", "").replace(" ", "_")
-    nazorat_shakli = data.get("Nazorat shakli", "").replace(" ", "_")
+    nazorat_turi = data.get("Nazorat shakli", "").replace(" ", "_")
+    nazorat_shakli = data.get("Nazorat turi", "").replace(" ", "_")
 
     filename = f"{tanlangan_guruh}_{semester}_{fan_nomi}_{nazorat_turi}_{nazorat_shakli}_tur.docx"
     output_dir = "Qaydnomalar"
