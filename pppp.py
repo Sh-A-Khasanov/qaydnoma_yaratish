@@ -4,6 +4,7 @@ from tkcalendar import DateEntry
 import pandas as pd
 import glob
 import os
+
 from docx import Document
 from docx.shared import Pt, Cm
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
@@ -14,20 +15,133 @@ from datetime import datetime
 import re
 from word_yasash import create_word, delete_file
 
-# Ranglar
+# Colors
 TEXT_COLOR = "#FFFFFF"
 BORDER_COLOR = "#012C6E"
 BUTTON_COLOR = "#04AA6D"
-BG_COLOR = "#F5F6F5"  # Yengil kulrang fon
-SECONDARY_BG = "#E8ECEF"  # Ikkinchi darajali fon
+BG_COLOR = "#F5F6F5"  # Light gray background
+SECONDARY_BG = "#E8ECEF"  # Secondary background
 
-# Font sozlamalari
+# Font settings
 FONT_FAMILY = "Arial"
 LABEL_FONT = (FONT_FAMILY, 12, "bold")
 ENTRY_FONT = (FONT_FAMILY, 11)
 BUTTON_FONT = (FONT_FAMILY, 11, "bold")
 
-# Funksiyalar (oldingi kod bilan bir xil, faqat dizayn uchun yangilandi)
+# Translation dictionaries
+translations = {
+    "uz": {
+        "fields": {
+            "Fakultet nomi": "Fakultet nomi",
+            "Semestr": "Semestr",
+            "Guruh": "Guruh",
+            "Fan": "Fan",
+            "Fan o'qituvchilari": "Fan o'qituvchilari",
+            "Nazorat shakli": "Nazorat shakli",
+            "Nazorat mas’uli": "Nazorat mas’uli",
+            "Nazorat turi": "Nazorat turi",
+            "Dekan nomi": "Dekan nomi",
+            "Kafedra mudiri nomi": "Kafedra mudiri nomi"
+        },
+        "input_fields": {
+            "Fan soati": "Fan soati",
+            "Fan krediti": "Fan krediti",
+            "Nazorat sanasi": "Nazorat sanasi"
+        },
+        "buttons": {
+            "Saqlash": "✅ Saqlash",
+            "Chop etish": "🖨 Chop etish"
+        },
+        "placeholder": "Tanlang...",
+        "messages": {
+            "student_count": "✅ '{group}' guruhidagi talabalar soni: {count} nafar"
+        }
+    },
+    "ru": {
+        "fields": {
+            "Fakultet nomi": "Название факультета",
+            "Semestr": "Семестр",
+            "Guruh": "Группа",
+            "Fan": "Предмет",
+            "Fan o'qituvchilari": "Преподаватели предмета",
+            "Nazorat shakli": "Форма контроля",
+            "Nazorat mas’uli": "Ответственный за контроль",
+            "Nazorat turi": "Тип контроля",
+            "Dekan nomi": "Имя декана",
+            "Kafedra mudiri nomi": "Имя заведующего кафедрой"
+        },
+        "input_fields": {
+            "Fan soati": "Часы предмета",
+            "Fan krediti": "Кредиты предмета",
+            "Nazorat sanasi": "Дата контроля"
+        },
+        "buttons": {
+            "Saqlash": "✅ Сохранить",
+            "Chop etish": "🖨 Печать"
+        },
+        "placeholder": "Выберите...",
+        "messages": {
+            "student_count": "✅ Количество студентов в группе '{group}': {count} чел."
+        }
+    },
+    "en": {
+        "fields": {
+            "Fakultet nomi": "Faculty Name",
+            "Semestr": "Semester",
+            "Guruh": "Group",
+            "Fan": "Subject",
+            "Fan o'qituvchilari": "Subject Teachers",
+            "Nazorat shakli": "Control Form",
+            "Nazorat mas’uli": "Control Responsible",
+            "Nazorat turi": "Control Type",
+            "Dekan nomi": "Dean’s Name",
+            "Kafedra mudiri nomi": "Head of Department Name"
+        },
+        "input_fields": {
+            "Fan soati": "Subject Hours",
+            "Fan krediti": "Subject Credits",
+            "Nazorat sanasi": "Control Date"
+        },
+        "buttons": {
+            "Saqlash": "✅ Save",
+            "Chop etish": "🖨 Print"
+        },
+        "placeholder": "Select...",
+        "messages": {
+            "student_count": "✅ Number of students in group '{group}': {count}"
+        }
+    }
+}
+
+# Control form options translation
+control_form_translations = {
+    "uz": [
+        "1-ON(max-15 ball)",
+        "2-ON(max-15 ball)",
+        "Oraliq(max-30 ball)",
+        "Yakuniy(max-70 ball)",
+        "Umumiy(max-100 ball)"
+    ],
+    "ru": [
+        "1-ОН(макс-15 баллов)",
+        "2-ОН(макс-15 баллов)",
+        "Oraliq(макс-30 баллов)",
+        "Yakuniy(макс-70 баллов)",
+        "Umumiy(макс-100 баллов)"
+    ],
+    "en": [
+        "1-ON(max-15 points)",
+        "2-ON(max-15 points)",
+        "Oraliq(max-30 points)",
+        "Yakuniy(max-70 points)",
+        "Umumiy(max-100 points)"
+    ]
+}
+
+# Global variable for selected language
+selected_language = "uz"  # Default to Uzbek
+
+# Data fetching functions
 def get_uqituvchi_list_from_google_sheet():
     sheet_id = "1eJ6LDB61vZ8ZW2IAyseKOnLigUHEbas6F0bwTquqIeU"
     sheet_name = "Xodimlar"
@@ -40,7 +154,6 @@ def get_uqituvchi_list_from_google_sheet():
             full_names = df[['Familiya', 'Ismi', 'Otasining ismi']].fillna('').astype(str).apply(
                 lambda x: f"{x['Familiya']} {x['Ismi']} {x['Otasining ismi']}".strip(), axis=1)
             return list(set(full_names))
-
         else:
             print("❌ Kutilgan ustun nomlari topilmadi.")
             return []
@@ -94,23 +207,15 @@ def get_groups_and_faculties_from_excel(file_path):
         print("Xatolik:", e)
         return [], []
 
-# Tkinter oynasi
+# Tkinter window
 root = tk.Tk()
 root.title("Qaydnoma shakillantirish")
 root.geometry("1200x600")
 root.state('zoomed')
 root.configure(bg=BG_COLOR)
 
-# Guruh va fakultetlar
+# Data initialization
 guruhlar, fakultetlar = get_groups_and_faculties_from_excel(talabalar)
-
-# Entry va comboboxlar uchun variantlar
-input_fields = {
-    "Fan soati": "",
-    "Fan krediti": "",
-    "Nazorat sanasi": ""
-}
-
 uqituvchi_ismi = sorted(get_uqituvchi_list_from_google_sheet())
 fanlar_list = sorted(get_fanlar_from_google_sheet())
 
@@ -126,7 +231,14 @@ fields = {
     "Dekan nomi": uqituvchi_ismi,
     "Kafedra mudiri nomi": uqituvchi_ismi
 }
-# Nazorat turi mapping
+
+input_fields = {
+    "Fan soati": "",
+    "Fan krediti": "",
+    "Nazorat sanasi": ""
+}
+
+# Control form mappings
 nazorat_shakli_map = {
     "1": "1",
     "2": "1a",
@@ -137,7 +249,17 @@ max_ball_map = {
     "2-ON(max-15 ball)": 15,
     "Oraliq(max-30 ball)": 30,
     "Yakuniy(max-70 ball)": 70,
-    "Umumiy(max-100 ball)": 100
+    "Umumiy(max-100 ball)": 100,
+    "1-ОН(макс-15 баллов)": 15,
+    "2-ОН(макс-15 баллов)": 15,
+    "Промежуточный(макс-30 баллов)": 30,
+    "Итоговый(макс-70 баллов)": 70,
+    "Общий(макс-100 баллов)": 100,
+    "1-ON(max-15 points)": 15,
+    "2-ON(max-15 points)": 15,
+    "Midterm(max-30 points)": 30,
+    "Final(max-70 points)": 70,
+    "Total(max-100 points)": 100
 }
 
 def calculate_baho(ball, max_ball):
@@ -171,9 +293,83 @@ def create_uppercase_var():
 form_frame = tk.Frame(root, bg=BG_COLOR, bd=2, relief="groove")
 form_frame.pack(pady=20, padx=20, fill="x")
 
+# Button frame
+button_frame = tk.Frame(root, bg=TEXT_COLOR)
+button_frame.pack(pady=20)
+
 comboboxes = {}
 input_entries = {}
 input_vars = {}
+
+# Language selection
+def select_language():
+    global selected_language
+    lang_window = tk.Toplevel(root)
+    lang_window.title("Tilni tanlang / Выберите язык / Select Language")
+    lang_window.geometry("300x200")
+    lang_window.configure(bg=BG_COLOR)
+    lang_window.grab_set()
+
+    tk.Label(lang_window, text="Dastur tilini tanlang:", bg=BG_COLOR, font=LABEL_FONT).pack(pady=10)
+    for lang, label in [("uz", "O'zbek"), ("ru", "Русский"), ("en", "English")]:
+        tk.Button(lang_window, text=label, bg=BUTTON_COLOR, fg=TEXT_COLOR, font=BUTTON_FONT,
+                  command=lambda l=lang: set_language(l, lang_window)).pack(pady=5, fill="x", padx=20)
+
+def set_language(lang, window):
+    global selected_language
+    selected_language = lang
+    window.destroy()
+    initialize_ui()
+
+def initialize_ui():
+    # Clear existing widgets
+    for widget in form_frame.winfo_children():
+        widget.destroy()
+    for widget in button_frame.winfo_children():
+        widget.destroy()
+
+    # Translate fields
+    translated_fields = {
+        translations[selected_language]["fields"][key]: value
+        for key, value in fields.items()
+    }
+    translated_fields[translations[selected_language]["fields"]["Nazorat shakli"]] = control_form_translations[selected_language]
+
+    translated_input_fields = {
+        translations[selected_language]["input_fields"][key]: value
+        for key, value in input_fields.items()
+    }
+
+    # Place fields
+    all_fields = list(translated_fields.items()) + list(translated_input_fields.items())
+    columns = 3
+    for index, (label, options) in enumerate(all_fields):
+        row = index // columns
+        col = index % columns
+
+        tk.Label(form_frame, text=label, font=LABEL_FONT, bg=BG_COLOR, fg=BORDER_COLOR).grid(row=row * 2, column=col, padx=10, pady=5, sticky="w")
+
+        if isinstance(options, list):
+            cb = SearchableCombobox(form_frame, values=options, width=40)
+            cb.grid(row=row * 2 + 1, column=col, padx=10, pady=5, sticky="we")
+            comboboxes[label] = cb
+        else:
+            if label == translations[selected_language]["input_fields"]["Nazorat sanasi"]:
+                date_entry = DateEntry(form_frame, date_pattern='dd.mm.yyyy', width=47, background=BORDER_COLOR, foreground=BORDER_COLOR, borderwidth=2, font=ENTRY_FONT)
+                date_entry.grid(row=row * 2 + 1, column=col, padx=10, pady=5, sticky="we")
+                date_entry.bind("<FocusOut>", format_date_entry)
+                input_entries[label] = date_entry
+            else:
+                var = create_uppercase_var()
+                entry = tk.Entry(form_frame, textvariable=var, bg=SECONDARY_BG, fg=BORDER_COLOR, font=ENTRY_FONT, bd=2, relief="groove")
+                entry.grid(row=row * 2 + 1, column=col, padx=10, pady=5, sticky="we")
+                set_entry_placeholder(entry, "")
+                input_vars[label] = var
+                input_entries[label] = entry
+
+    # Create buttons
+    create_button(button_frame, translations[selected_language]["buttons"]["Saqlash"], saqlash)
+    create_button(button_frame, translations[selected_language]["buttons"]["Chop etish"], print_word)
 
 def set_entry_placeholder(entry, placeholder_text):
     entry.insert(0, placeholder_text)
@@ -196,11 +392,11 @@ class SearchableCombobox(ttk.Combobox):
         self.original_values = values
         self.bind('<KeyRelease>', self.on_keyrelease_uppercase)
         self.bind('<FocusIn>', self.on_focus_in)
-        self.set("Tanlang...")
+        self.set(translations[selected_language]["placeholder"])
         self.configure(style="Custom.TCombobox")
 
     def on_focus_in(self, event):
-        if self.get() == "Tanlang...":
+        if self.get() == translations[selected_language]["placeholder"]:
             self.delete(0, tk.END)
 
     def on_keyrelease_uppercase(self, event):
@@ -231,7 +427,7 @@ def format_date_entry(event):
         except ValueError:
             continue
 
-# Combobox uslubi
+# Combobox style
 style = ttk.Style()
 style.theme_use('clam')
 style.configure("Custom.TCombobox",
@@ -244,33 +440,6 @@ style.map("Custom.TCombobox",
           fieldbackground=[('readonly', SECONDARY_BG)],
           selectbackground=[('readonly', SECONDARY_BG)],
           selectforeground=[('readonly', BORDER_COLOR)])
-
-# Maydonlarni joylashtirish
-all_fields = list(fields.items()) + list(input_fields.items())
-columns = 3
-for index, (label, options) in enumerate(all_fields):
-    row = index // columns
-    col = index % columns
-
-    tk.Label(form_frame, text=label, font=LABEL_FONT, bg=BG_COLOR, fg=BORDER_COLOR).grid(row=row * 2, column=col, padx=10, pady=5, sticky="w")
-
-    if isinstance(options, list):
-        cb = SearchableCombobox(form_frame, values=options, width=40)
-        cb.grid(row=row * 2 + 1, column=col, padx=10, pady=5, sticky="we")
-        comboboxes[label] = cb
-    else:
-        if label == "Nazorat sanasi":
-            date_entry = DateEntry(form_frame, date_pattern='dd.mm.yyyy', width=47, background=BORDER_COLOR, foreground=BORDER_COLOR, borderwidth=2, font=ENTRY_FONT)
-            date_entry.grid(row=row * 2 + 1, column=col, padx=10, pady=5, sticky="we")
-            date_entry.bind("<FocusOut>", format_date_entry)
-            input_entries[label] = date_entry
-        else:
-            var = create_uppercase_var()
-            entry = tk.Entry(form_frame, textvariable=var, bg=SECONDARY_BG, fg=BORDER_COLOR, font=ENTRY_FONT, bd=2, relief="groove")
-            entry.grid(row=row * 2 + 1, column=col, padx=10, pady=5, sticky="we")
-            set_entry_placeholder(entry, "")
-            input_vars[label] = var
-            input_entries[label] = entry
 
 # Scrollable frame
 scroll_canvas = tk.Canvas(root, height=400, bg=BG_COLOR, highlightthickness=0)
@@ -286,7 +455,6 @@ def resize_canvas(event):
 
 scroll_canvas.bind("<Configure>", resize_canvas)
 scrollable_frame.bind("<Configure>", lambda e: scroll_canvas.configure(scrollregion=scroll_canvas.bbox("all")))
-
 scroll_canvas.pack(fill='both', expand=True, padx=20, pady=10)
 scrollbar.pack(side="right", fill="y")
 scroll_canvas.pack_forget()
@@ -315,8 +483,8 @@ def saqlash():
     data = {label: entry.get() for label, entry in input_entries.items()}
     data.update({label: cb.get() for label, cb in comboboxes.items()})
 
-    tanlangan_guruh = data.get("Guruh")
-    if not tanlangan_guruh:
+    tanlangan_guruh = data.get(translations[selected_language]["fields"]["Guruh"])
+    if not tanlangan_guruh or tanlangan_guruh == translations[selected_language]["placeholder"]:
         warning_frame = tk.Frame(scrollable_frame, bg=BG_COLOR)
         warning_frame.pack(pady=10, fill='x')
         tk.Label(warning_frame, text="❌ Iltimos, guruhni tanlang.", fg="red", font=("Arial", 12), bg=BG_COLOR).pack(anchor="center")
@@ -334,14 +502,15 @@ def saqlash():
             tk.Label(empty_frame, text=f"❌ '{tanlangan_guruh}' guruhiga mos talaba topilmadi.",
                      fg="red", font=("Arial", 12), bg=BG_COLOR).pack(anchor="center")
         else:
-            tk.Label(scrollable_frame, text=f"✅ '{tanlangan_guruh}' guruhidagi talabalar soni: {len(sorted_talabalar)} nafar",
+            # Use translated message for student count
+            message = translations[selected_language]["messages"]["student_count"].format(group=tanlangan_guruh, count=len(sorted_talabalar))
+            tk.Label(scrollable_frame, text=message,
                      font=("Arial", 11, "bold"), bg=BG_COLOR, fg=BORDER_COLOR).pack(pady=10, anchor="center")
 
             header_frame = tk.Frame(scrollable_frame, bg=SECONDARY_BG)
             header_frame.pack(pady=(5, 2))
 
             labels = [
-                # ("T/R", 5),
                 ("T/R                            F.I.O               ", 30),
                 ("               Hemis ID", 20),
                 ("              Ball", 20)
@@ -412,8 +581,8 @@ def print_word():
     qoniqarsiz_2 = 0
     kelmadi = 0
 
-    tanlangan_guruh = data.get("Guruh")
-    if not tanlangan_guruh:
+    tanlangan_guruh = data.get(translations[selected_language]["fields"]["Guruh"])
+    if not tanlangan_guruh or tanlangan_guruh == translations[selected_language]["placeholder"]:
         print("❌ Guruh tanlanmagan.")
         return
 
@@ -432,28 +601,28 @@ def print_word():
         print("❌ docx_temp.docx ochishda xatolik:", e)
         return
 
-    nazorat_tur_full = data.get("Nazorat shakli", "")
+    nazorat_tur_full = data.get(translations[selected_language]["fields"]["Nazorat shakli"], "")
     nazorat_tur = re.sub(r"\(.*?\)", "", nazorat_tur_full).strip()
 
     max_ball = max_ball_map.get(nazorat_tur_full, 100)
-    nazorat_shakli = data.get("Nazorat turi", "")
-    mapped_nazorat_shakli = nazorat_shakli_map.get(nazorat_shakli, nazorat_shakli)  # Use original if not found
-    
+    nazorat_shakli = data.get(translations[selected_language]["fields"]["Nazorat turi"], "")
+    mapped_nazorat_shakli = nazorat_shakli_map.get(nazorat_shakli, nazorat_shakli)
+
     replace_map = {
-        "{fakultet}": data.get("Fakultet nomi", ""),
-        "{semester}": data.get("Semestr", ""),
-        "{guruh}": data.get("Guruh", ""),
-        "{fan}": data.get("Fan", ""),
-        "{fan_uqituvchi}": data.get("Fan o'qituvchilari", ""),
+        "{fakultet}": data.get(translations[selected_language]["fields"]["Fakultet nomi"], ""),
+        "{semester}": data.get(translations[selected_language]["fields"]["Semestr"], ""),
+        "{guruh}": data.get(translations[selected_language]["fields"]["Guruh"], ""),
+        "{fan}": data.get(translations[selected_language]["fields"]["Fan"], ""),
+        "{fan_uqituvchi}": data.get(translations[selected_language]["fields"]["Fan o'qituvchilari"], ""),
         "{nazorat_turi}": nazorat_tur,
         "{nazorat_tur}dan to‘plagan ballar": f"{nazorat_tur}dan to‘plagan ballar",
-        "{nazorat_masuli}": data.get("Nazorat mas’uli", ""),
-        "{soat}": data.get("Fan soati", ""),
-        "{kredit}": data.get("Fan krediti", ""),
-        "{nazorat_sanasi}": data.get("Nazorat sanasi", ""),
-        "{tur}": mapped_nazorat_shakli,  # Use the mapped value
-        "{dekan}": data.get("Dekan nomi", ""),
-        "{mudir}": data.get("Kafedra mudiri nomi", "")
+        "{nazorat_masuli}": data.get(translations[selected_language]["fields"]["Nazorat mas’uli"], ""),
+        "{soat}": data.get(translations[selected_language]["input_fields"]["Fan soati"], ""),
+        "{kredit}": data.get(translations[selected_language]["input_fields"]["Fan krediti"], ""),
+        "{nazorat_sanasi}": data.get(translations[selected_language]["input_fields"]["Nazorat sanasi"], ""),
+        "{tur}": mapped_nazorat_shakli,
+        "{dekan}": data.get(translations[selected_language]["fields"]["Dekan nomi"], ""),
+        "{mudir}": data.get(translations[selected_language]["fields"]["Kafedra mudiri nomi"], "")
     }
 
     for table in doc.tables:
@@ -547,13 +716,19 @@ def print_word():
                     run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
                     run.font.size = Pt(11)
 
-    fan_nomi = data.get("Fan", "").replace(" ", "_")
-    semester = data.get("Semestr", "").replace(" ", "_")
-    nazorat_turi = data.get("Nazorat shakli", "").replace(" ", "_")
-    nazorat_shakli = data.get("Nazorat turi", "").replace(" ", "_")
+    fan_nomi = data.get(translations[selected_language]["fields"]["Fan"], "").replace(" ", "_")
+    semester = data.get(translations[selected_language]["fields"]["Semestr"], "").replace(" ", "_")
+    nazorat_turi = data.get(translations[selected_language]["fields"]["Nazorat shakli"], "").replace(" ", "_")
+    nazorat_shakli = data.get(translations[selected_language]["fields"]["Nazorat turi"], "").replace(" ", "_")
+
+
+
+    output_dir = "Qaydnomalar"
 
     filename = f"{tanlangan_guruh}_{semester}_{fan_nomi}_{nazorat_turi}_{nazorat_shakli}_tur.docx"
-    output_dir = "Qaydnomalar"
+    # Taqiqlangan belgilarni fayl nomidan olib tashlaymiz
+    filename = re.sub(r'[\\/*?:"<>|]', "", filename)
+
     output_path = os.path.join(output_dir, filename)
 
     if not os.path.exists(output_dir):
@@ -577,23 +752,18 @@ def send_file_to_telegram_group(file_path):
     if response.status_code == 200:
         print("✅ Hujjat Qaydnomalar papkaga yuborildi!")
     else:
-        print("❌ Hujjat Hujjat Qaydnomalar papkaga yuborishda xatolik:", response.text)
-
-# Tugmalar uchun frame
-button_frame = tk.Frame(root, bg=TEXT_COLOR)
-button_frame.pack(pady=20)
+        print("❌ Hujjat Qaydnomalar papkaga yuborishda xatolik:", response.text)
 
 def create_button(parent, text, command):
     btn = tk.Button(parent, text=text, command=command, bg=BUTTON_COLOR, fg=TEXT_COLOR, font=BUTTON_FONT,
                     bd=0, relief="flat", activebackground="#038c5a", activeforeground=BORDER_COLOR)
     btn.pack(side="left", padx=10)
     btn.configure(width=15, height=2)
-    # Hover effekti
     btn.bind("<Enter>", lambda e: btn.configure(bg="#038c5a"))
     btn.bind("<Leave>", lambda e: btn.configure(bg=BUTTON_COLOR))
     return btn
 
-create_button(button_frame, "✅ Saqlash", saqlash)
-create_button(button_frame, "🖨 Chop etish", print_word)
+# Show language selection dialog
+select_language()
 
 root.mainloop()
