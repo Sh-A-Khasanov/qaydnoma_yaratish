@@ -124,16 +124,16 @@ control_form_translations = {
     "ru": [
         "1-ОН(макс-15 баллов)",
         "2-ОН(макс-15 баллов)",
-        "Промежуточный(макс-30 баллов)",
-        "Итоговый(макс-70 баллов)",
-        "Общий(макс-100 баллов)"
+        "Oraliq(макс-30 баллов)",
+        "Yakuniy(макс-70 баллов)",
+        "Umumiy(макс-100 баллов)"
     ],
     "en": [
         "1-ON(max-15 points)",
         "2-ON(max-15 points)",
-        "Midterm(max-30 points)",
-        "Final(max-70 points)",
-        "Total(max-100 points)"
+        "Oraliq(max-30 points)",
+        "Yakuniy(max-70 points)",
+        "Umumiy(max-100 points)"
     ]
 }
 
@@ -141,7 +141,7 @@ control_form_translations = {
 selected_language = "uz"  # Default to Uzbek
 
 # Data fetching functions
-def get_code_from_google_sheet():
+def get_code_from_google_sheet(entered_code):
     sheet_id = "1eJ6LDB61vZ8ZW2IAyseKOnLigUHEbas6F0bwTquqIeU"
     sheet_name = "KOD"
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
@@ -149,23 +149,34 @@ def get_code_from_google_sheet():
         response = requests.get(url)
         response.raise_for_status()
         df = pd.read_csv(StringIO(response.text), header=None)  # Ustun nomlarini o'qimaslik uchun header=None
-        if not df.empty and df.shape[0] > 0 and df.shape[1] > 0:
-            code = str(df.iloc[0, 0]).strip()  # Birinchi qator, birinchi ustun (A1)
-            if code and code.lower() != "nan":  # Bo'sh yoki "NaN" emasligini tekshirish
-                return code
-            else:
-                print("❌ 'KOD' sahifasida A1 hujayrasi bo'sh yoki topilmadi.")
-                return None
+        if not df.empty and df.shape[1] >= 2:  # Kamida 2 ustun borligini tekshirish
+            # A ustuni (0-indeks) bo'yicha kiritilgan kodni qidirish
+            for index, value in df[0].items():
+                if str(value).strip().lower() == str(entered_code).strip().lower():
+                    # Agar kod topilsa, B ustunidagi (1-indeks) qiymatni chop etish
+                    corresponding_value = df.iloc[index, 1]
+                    if pd.notna(corresponding_value):  # Qiymat NaN emasligini tekshirish
+                        print(f"✅ Topilgan kod: {entered_code}, B ustunidagi qiymat: {corresponding_value}")
+                        return str(corresponding_value).strip()
+                    else:
+                        print(f"❌ Kod topildi ({entered_code}), lekin B ustunidagi qiymat bo'sh.")
+                        return None
+            print(f"❌ Kiritilgan kod ({entered_code}) mos kelmadi")
+            return None
         else:
-            print("❌ 'KOD' sahifasida A1 hujayrasi bo'sh yoki topilmadi.")
+            print("❌ 'KOD' sahifasida ma'lumotlar yetarli emas yoki topilmadi.")
             return None
     except Exception as e:
         print(f"❌ Google Sheet'dan kod olishda xatolik: {e}")
         return None
 
-def get_talabalar_from_google_sheet():
+
+
+def get_talabalar_from_google_sheet(sheet_name):
+    if not sheet_name:
+        print("❌ Sahifa nomi kiritilmadi!")
+        return None
     sheet_id = "1eJ6LDB61vZ8ZW2IAyseKOnLigUHEbas6F0bwTquqIeU"
-    sheet_name = "Talabalar_TIB"
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     try:
         response = requests.get(url)
@@ -173,8 +184,11 @@ def get_talabalar_from_google_sheet():
         df = pd.read_csv(StringIO(response.text))
         return df
     except Exception as e:
-        print(f"❌ Google Sheet'dan talabalar ro'yxatini olishda xatolik: {e}")
+        print(f"❌ Google Sheet'dan talabalar ro'yxatini olishda xatolik (sahifa: {sheet_name}): {e}")
         return None
+    
+
+
 
 def get_uqituvchi_list_from_google_sheet():
     sheet_id = "1eJ6LDB61vZ8ZW2IAyseKOnLigUHEbas6F0bwTquqIeU"
@@ -213,17 +227,20 @@ def get_fanlar_from_google_sheet():
         print("❌ Fanlar listidan o‘qishda xatolik:", e)
         return []
 
-def get_groups_and_faculties_from_google_sheet():
-    df = get_talabalar_from_google_sheet()
+def get_groups_and_faculties_from_google_sheet(sheet_name):
+    df = get_talabalar_from_google_sheet(sheet_name)
     if df is not None:
         try:
             groups = df['Guruh'].dropna().unique()
             faculties = df['Fakultet'].dropna().unique()
             return sorted(set(groups)), sorted(set(faculties))
         except Exception as e:
-            print(f"Xatolik: {e}")
+            print(f"❌ Guruhlar va fakultetlarni olishda xatolik: {e}")
             return [], []
     return [], []
+
+
+
 
 # Tkinter window
 root = tk.Tk()
@@ -233,7 +250,9 @@ root.state('zoomed')
 root.configure(bg=BG_COLOR)
 
 # Data initialization
-guruhlar, fakultetlar = get_groups_and_faculties_from_google_sheet()
+# Data initialization
+guruhlar = []
+fakultetlar = []
 uqituvchi_ismi = sorted(get_uqituvchi_list_from_google_sheet())
 fanlar_list = sorted(get_fanlar_from_google_sheet())
 
@@ -342,17 +361,23 @@ def select_language():
 
     def check_code_and_set_language(lang):
         entered_code = code_entry.get().strip()
-        correct_code = get_code_from_google_sheet()
-        if correct_code is None:
-            error_label.config(text="❌ Kodni tekshirishda xatolik yuz berdi.")
-            return
-        if entered_code == correct_code:
-            global selected_language
+        global corresponding_value
+        corresponding_value = get_code_from_google_sheet(entered_code)
+        if corresponding_value:
+            global selected_language, guruhlar, fakultetlar
             selected_language = lang
-            lang_window.destroy()
-            initialize_ui()
+            # corresponding_value ni sheet_name sifatida ishlatish
+            guruhlar, fakultetlar = get_groups_and_faculties_from_google_sheet(sheet_name=corresponding_value)
+            if guruhlar or fakultetlar:
+                print(f"✅ {corresponding_value} sahifasidan guruhlar va fakultetlar muvaffaqiyatli olindi.")
+                lang_window.destroy()
+                initialize_ui()
+            else:
+                error_label.config(text=f"❌ {corresponding_value} sahifasidan guruhlar va fakultetlar olishda xato!")
         else:
-            error_label.config(text="❌ Noto'g'ri kod kiritildi!")
+            error_label.config(text=f"❌ Kiritilgan kod ({entered_code}) xato.")
+
+
 
     # Til tanlash tugmalari
     for lang, label in [("uz", "O'zbek"), ("ru", "Русский"), ("en", "English")]:
@@ -374,12 +399,24 @@ def initialize_ui():
     for widget in button_frame.winfo_children():
         widget.destroy()
 
+    # Fields ni yangilash
+    fields = {
+        translations[selected_language]["fields"]["Fakultet nomi"]: fakultetlar if fakultetlar else ["Fakultet 1", "Fakultet 2"],
+        translations[selected_language]["fields"]["Semestr"]: [f"{i}-semestr" for i in range(1, 13)],
+        translations[selected_language]["fields"]["Guruh"]: guruhlar if guruhlar else ["Guruh 1", "Guruh 2"],
+        translations[selected_language]["fields"]["Fan"]: fanlar_list,
+        translations[selected_language]["fields"]["Fan o'qituvchilari"]: uqituvchi_ismi,
+        translations[selected_language]["fields"]["Nazorat shakli"]: control_form_translations[selected_language],
+        translations[selected_language]["fields"]["Nazorat mas’uli"]: uqituvchi_ismi,
+        translations[selected_language]["fields"]["Nazorat turi"]: ["1", "2", "3"],
+        translations[selected_language]["fields"]["Dekan nomi"]: uqituvchi_ismi,
+        translations[selected_language]["fields"]["Kafedra mudiri nomi"]: uqituvchi_ismi
+    }
+
     # Translate fields
     translated_fields = {
-        translations[selected_language]["fields"][key]: value
-        for key, value in fields.items()
+        key: value for key, value in fields.items()
     }
-    translated_fields[translations[selected_language]["fields"]["Nazorat shakli"]] = control_form_translations[selected_language]
 
     translated_input_fields = {
         translations[selected_language]["input_fields"][key]: value
@@ -416,6 +453,7 @@ def initialize_ui():
     # Create buttons
     create_button(button_frame, translations[selected_language]["buttons"]["Saqlash"], saqlash)
     create_button(button_frame, translations[selected_language]["buttons"]["Chop etish"], print_word)
+
 
 def set_entry_placeholder(entry, placeholder_text):
     entry.insert(0, placeholder_text)
@@ -515,6 +553,8 @@ root.bind_all("<MouseWheel>", _on_mousewheel)
 root.bind_all("<Button-4>", _on_mousewheel)
 root.bind_all("<Button-5>", _on_mousewheel)
 
+
+
 def saqlash():
     xatolik_label = tk.Label(root, text="", fg="red", font=("Arial", 12))
     xatolik_label.pack()
@@ -538,7 +578,7 @@ def saqlash():
         return
 
     try:
-        df = get_talabalar_from_google_sheet()
+        df = get_talabalar_from_google_sheet(corresponding_value)
         if df is None:
             tk.Label(scrollable_frame, text="❌ Talabalar ro'yxatini olishda xatolik yuz berdi.", fg="red", bg=BG_COLOR).pack()
             return
@@ -549,11 +589,11 @@ def saqlash():
             empty_frame = tk.Frame(scrollable_frame, bg=BG_COLOR)
             empty_frame.pack(pady=10, fill='x')
             tk.Label(empty_frame, text=f"❌ '{tanlangan_guruh}' guruhiga mos talaba topilmadi.",
-                     fg="red", font=("Arial", 12), bg=BG_COLOR).pack(anchor="center")
+                    fg="red", font=("Arial", 12), bg=BG_COLOR).pack(anchor="center")
         else:
             message = translations[selected_language]["messages"]["student_count"].format(group=tanlangan_guruh, count=len(sorted_talabalar))
             tk.Label(scrollable_frame, text=message,
-                     font=("Arial", 11, "bold"), bg=BG_COLOR, fg=BORDER_COLOR).pack(pady=10, anchor="center")
+                    font=("Arial", 11, "bold"), bg=BG_COLOR, fg=BORDER_COLOR).pack(pady=10, anchor="center")
 
             header_frame = tk.Frame(scrollable_frame, bg=SECONDARY_BG)
             header_frame.pack(pady=(5, 2))
@@ -586,6 +626,7 @@ def saqlash():
         tk.Label(scrollable_frame, text="❌ Ma'lumotlarni o‘qishda xatolik: " + str(e), fg="red", bg=BG_COLOR).pack()
 
     scroll_canvas.pack(fill='both', expand=True, padx=20, pady=10)
+
 
 def replace_text_in_doc(doc, replace_map):
     for p in doc.paragraphs:
@@ -635,7 +676,7 @@ def print_word():
         return
 
     try:
-        df = get_talabalar_from_google_sheet()
+        df = get_talabalar_from_google_sheet(corresponding_value)
         if df is None:
             print("❌ Talabalar ro'yxatini olishda xatolik.")
             return
